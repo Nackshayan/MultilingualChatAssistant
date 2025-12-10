@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Languages shown in the two spinners -->
+    <string-array name="languages_display">
+        <item>English</item>
+        <item>Spanish</item>
+        <item>French</item>
+        <item>Tamil</item>
+    </string-array>
+
+    <!-- Tone spinner labels -->
+    <string-array name="tone_display">
+        <item>Auto (detect)</item>
+        <item>Friendly</item>
+        <item>Formal</item>
+        <item>Casual</item>
+        <item>Humorous</item>
+        <item>Empathetic</item>
+        <item>Neutral</item>
+    </string-array>
+
+</resources>

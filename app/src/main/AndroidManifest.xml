@@ -1,0 +1,39 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.multilingualchatassistant">
+
+    <!-- Existing permissions ... -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- NEW: overlay permission for floating bubble -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.MultilingualChatAssistant">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.AboutActivity"
+            android:label="About &amp; Privacy"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <!-- NEW: Floating bubble service -->
+        <service
+            android:name=".overlay.FloatingBubbleService"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

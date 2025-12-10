@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- App name -->
+    <string name="app_name">MultilingualChatAssistant</string>
+
+    <!-- Main screen labels -->
+    <string name="label_incoming">Incoming message:</string>
+    <string name="hint_incoming">Paste or type the message you received</string>
+
+    <!-- Buttons -->
+    <!-- NOTE: this is now *translate only*, no intent/tone here -->
+    <string name="btn_translate">Translate</string>
+    <string name="btn_speak_incoming">Speak</string>
+    <string name="btn_speak_reply">Speak reply</string>
+    <string name="btn_generate_reply">Generate &amp; Save Reply</string>
+    <string name="btn_generate_gif">Generate GIF</string>
+    <string name="btn_clear_history">Clear History</string>
+
+    <!-- Language section -->
+    <string name="label_you_read_in">You read in:</string>
+    <string name="label_you_reply_in">You reply in:</string>
+    <string name="label_tone">Tone:</string>
+    <string name="tone_auto">Auto (detect)</string>
+
+    <!-- Translation result (under Translate button) -->
+    <string name="label_translation_result">Translated message:</string>
+    <string name="hint_translation_result">Press Translate to see this in your language…</string>
+
+    <!-- Reply section -->
+    <string name="label_reply_before_styling">Your reply (before styling):</string>
+    <string name="hint_reply">Type what you want to say…</string>
+
+    <!-- Results section under Generate &amp; Save Reply -->
+    <!-- NOW this is where intent + tone live -->
+    <string name="label_intent">Intent:</string>
+    <string name="label_tone_result">Tone:</string>
+    <string name="label_reply_meaning">Your reply meaning (language):</string>
+    <string name="label_reply_send">Reply to send (language):</string>
+
+    <!-- History / GIF -->
+    <string name="label_gif_preview">GIF Preview</string>
+
+    <!-- Menu -->
+    <string name="menu_about">About</string>
+    <string name="about_title">About this app</string>
+    <string name="about_message">
+        This is a privacy-focused multilingual chat assistant that helps you understand
+        incoming messages, generate replies with local slang and emojis, and attach GIFs –
+        all while keeping your conversation history on-device.
+    </string>
+
+</resources>

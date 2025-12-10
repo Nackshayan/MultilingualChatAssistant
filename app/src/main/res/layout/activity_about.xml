@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Multilingual Chat Assistant"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="What this app does:"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• Detects the language, tone, and intent of incoming messages.\n• Translates messages into your preferred language.\n• Helps you craft replies with local slang, emojis, and the right tone.\n• Suggests expressive GIFs based on intent + vibe.\n• Stores your conversation history on-device for offline access."
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Privacy &amp; data:"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• All chat content is stored locally using Room database.\n• No chat text is uploaded to any server.\n• Only short anonymous GIF queries (intent + keywords) are sent to Giphy.\n• You can clear all stored history at any time with the Clear History button.\n• Speech input is handled by the device speech recognizer; this app does not send audio to its own servers."
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Technologies used:"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• ML Kit: on-device language identification and translation.\n• Custom NLP: intent detection, tone detection, slang/idiom styling.\n• Room: local, offline chat history.\n• Retrofit + Giphy API: GIF search with privacy-safe queries.\n• Android SpeechRecognizer: speech-to-text for incoming and reply.\n• Floating overlay bubble for quick access while chatting in other apps."
+            android:textSize="14sp" />
+
+    </LinearLayout>
+</ScrollView>
