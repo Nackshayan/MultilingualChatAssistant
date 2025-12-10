@@ -7,7 +7,7 @@ The app works mainly **offline** and focuses on **user privacy**, meaning messag
 
 ---
 
-## ✅ Features
+## Features
 
 - Translate incoming messages into the user’s preferred language
 - Detect the tone and intent of messages
@@ -22,7 +22,7 @@ The app works mainly **offline** and focuses on **user privacy**, meaning messag
 
 ---
 
-## ✅ How the System Works (Simple Explanation)
+## How the System Works (Simple Explanation)
 
 1. The user pastes or speaks an incoming message.
 2. The app detects the language automatically.
