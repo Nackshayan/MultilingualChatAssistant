@@ -1,73 +1,17 @@
-# Multilingual Chat Assistant (Android)
+Multilingual Chat Assistant for Android
 
-This is my final year project – a multilingual chat assistant built using Android (Java).  
-The main goal of this project is to help users understand incoming messages in different languages and generate appropriate replies with tone, intent, and even GIF support.
+This project is a privacy-focused multilingual Android chat assistant designed to improve cross-language communication by helping users better understand tone and intent in messages. The application supports multilingual message detection and translation, tone- and intent-aware reply suggestions, speech-to-text input, a floating chat bubble overlay, contextual GIF suggestions, and persistent local message history.
 
-The app works mainly **offline** and focuses on **user privacy**, meaning messages are not sent to external servers for processing (except for GIF fetching).
+Mobile messaging often loses emotional context when messages are translated literally, leading to misunderstandings in everyday conversations. Many existing AI assistants rely on cloud-based processing, which raises privacy concerns and introduces latency. This project addresses these issues by performing core natural language processing directly on the device while remaining compliant with modern Android system constraints.
 
----
+The application uses a rule-based natural language processing approach for tone and intent detection. This method was intentionally chosen to ensure predictable behaviour, low computational overhead, and improved privacy through on-device processing. Slang normalisation is applied to incoming text to improve consistency, and reply suggestions are generated deterministically to maintain reliability. Translation and GIF retrieval are only used when required.
 
-## Features
+From a mobile systems perspective, the project demonstrates advanced Android concepts including lifecycle-aware development, foreground service enforcement, overlay window management, background execution limits, secure permission handling, and offline-capable local data persistence using the Room database. The floating chat bubble is implemented using a foreground service to ensure stability under Android 14 restrictions.
 
-- Translate incoming messages into the user’s preferred language
-- Detect the tone and intent of messages
-- Generate smart replies based on context
-- Manual tone selection (friendly, formal, casual, etc.)
-- Speech-to-text for both incoming messages and replies
-- GIF generation based on message meaning and emotion
-- Copy reply and GIF link options
-- Message history stored locally using Room Database
-- Floating chat bubble overlay
-- Works fully offline for NLP and translation
+Testing focused on realistic mobile usage scenarios such as background and foreground transitions, permission denial and recovery, overlay stability, offline operation, and speech recognition behaviour. The final implementation demonstrated stable performance, low response latency, and reliable message history persistence across typical Android usage conditions.
 
----
+The project has some limitations. Rule-based NLP cannot fully capture complex language patterns such as sarcasm or cultural nuance, and translation quality depends on third-party services. The overlay bubble may also be intrusive on smaller screens for some users. These limitations were acknowledged as part of the project’s critical reflection.
 
-## How the System Works (Simple Explanation)
+Future improvements could include integrating lightweight on-device pretrained language models to enhance semantic understanding, adding adaptive tone personalisation, expanding language support, and exploring offline translation models. These enhancements would improve accuracy and flexibility while preserving the project’s privacy-first design.
 
-1. The user pastes or speaks an incoming message.
-2. The app detects the language automatically.
-3. The message is translated into the user’s reading language.
-4. The system detects:
-   - Intent (greeting, question, thanks, etc.)
-   - Tone (friendly, formal, casual, etc.)
-5. The user types a reply or speaks it.
-6. The system styles the reply and translates it back into the original sender’s language.
-7. A suitable GIF is generated based on intent and tone.
-8. Everything is saved into local history.
-
----
-
-##  Technologies Used
-
-- Java
-- Android Studio
-- XML (UI Design)
-- Room Database
-- Retrofit
-- Giphy API
-- Google ML Kit (Offline Translation)
-- Hybrid NLP System (Rule-based + ML-ready)
-- Git & GitHub
-
----
-
-##  NLP & Hybrid Design (In Simple Words)
-
-The app uses a **hybrid NLP system**:
-- At the moment, it mainly uses **rule-based logic** for detecting intent and tone.
-- However, the system is **ready for machine learning integration** using ONNX models in the future.
-- This allows the app to work fully offline while being future-proof.
-
----
-
-##  Project Structure
-
-```text
-app/
- ├── data/        → Database files (Room)
- ├── network/     → API handling (GIF)
- ├── nlp/         → NLP processing
- ├── overlay/     → Floating bubble
- ├── ui/          → Activities & UI logic
- ├── util/        → Helper classes
- └── res/         → Layouts, images, values
+This application was developed using Java in Android Studio as part of an Advanced Mobile Systems module. It is intended for academic and educational purposes and demonstrates practical application of modern Android system design principles.
