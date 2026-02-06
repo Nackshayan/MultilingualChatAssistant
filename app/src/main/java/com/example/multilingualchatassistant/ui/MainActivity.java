@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
@@ -96,6 +97,12 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_RECORD_AUDIO = 1001;
     private static final int REQ_OVERLAY_PERMISSION = 2002;
 
+    // ✅ NEW: notification permission request code (Android 13+)
+    private static final int REQ_POST_NOTIFICATIONS = 3001;
+
+    // ✅ NEW: prevents bubble starting while overlay permission screen is open
+    private boolean overlayPermissionRequestInProgress = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,6 +131,23 @@ public class MainActivity extends AppCompatActivity {
         setupClearHistoryButton();
         setupSpeechButtons();
         setupCopyButtons();
+
+        // ✅ NEW: required on Android 13+ so the foreground service notification can appear
+        ensureNotificationPermission();
+    }
+
+    // ✅ NEW
+    private void ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        REQ_POST_NOTIFICATIONS
+                );
+            }
+        }
     }
 
     private void bindViews() {
@@ -258,7 +282,6 @@ public class MainActivity extends AppCompatActivity {
             btnGenerateReply.setEnabled(false);
             btnGenerateReply.setText("Generating...");
 
-            // We always show replies to the user in English and send them in the detected original language
             ReplyEngine.generateReplyAsync(
                     incoming,
                     userReply,
@@ -557,15 +580,11 @@ public class MainActivity extends AppCompatActivity {
     // --------------- SPEECH ----------------
     private void setupSpeechButtons() {
         btnSpeakIncoming.setOnClickListener(v -> {
-            if (ensureAudioPermission()) {
-                startListeningIncoming();
-            }
+            if (ensureAudioPermission()) startListeningIncoming();
         });
 
         btnSpeakReply.setOnClickListener(v -> {
-            if (ensureAudioPermission()) {
-                startListeningReply();
-            }
+            if (ensureAudioPermission()) startListeningReply();
         });
     }
 
@@ -672,21 +691,42 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // --------------- FLOATING BUBBLE ----------------
+    // ✅ FIXED FLOATING BUBBLE (reliable)
     @Override
     protected void onPause() {
         super.onPause();
-        if (!isFinishing()) {
-            if (Settings.canDrawOverlays(this)) {
-                startService(new Intent(this, FloatingBubbleService.class));
+
+        if (isChangingConfigurations()) return;
+        if (isFinishing()) return;
+        if (overlayPermissionRequestInProgress) return;
+
+        if (Settings.canDrawOverlays(this)) {
+            Intent i = new Intent(this, FloatingBubbleService.class);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(i);
             } else {
-                Intent intent = new Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + getPackageName())
-                );
-                startActivityForResult(intent, REQ_OVERLAY_PERMISSION);
+                startService(i);
             }
+        } else {
+            overlayPermissionRequestInProgress = true;
+
+            Intent intent = new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName())
+            );
+            startActivityForResult(intent, REQ_OVERLAY_PERMISSION);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        overlayPermissionRequestInProgress = false;
+
+        // Stop bubble when returning to app
+        stopService(new Intent(this, FloatingBubbleService.class));
     }
 
     // --------------- MENU ----------------

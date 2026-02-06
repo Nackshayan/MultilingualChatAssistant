@@ -1,287 +1,203 @@
 package com.example.multilingualchatassistant.overlay;
 
-import android.animation.ValueAnimator;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
 import com.example.multilingualchatassistant.R;
 import com.example.multilingualchatassistant.ui.MainActivity;
 
 public class FloatingBubbleService extends Service {
 
+    private static final String TAG = "BUBBLE";
+    private static final String CHANNEL_ID = "bubble_channel";
+    private static final int NOTIF_ID = 101;
+
     private WindowManager windowManager;
     private View bubbleView;
-    private View closeTargetView;
+    private WindowManager.LayoutParams params;
 
-    private WindowManager.LayoutParams bubbleParams;
-    private WindowManager.LayoutParams closeParams;
+    private int initialX, initialY;
+    private float initialTouchX, initialTouchY;
 
-    private long touchDownTime;
     private boolean isDragging = false;
-
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    private static final int DRAG_THRESHOLD_PX = 10;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "Service onCreate called");
 
-        // If no overlay permission, just stop
-        if (!Settings.canDrawOverlays(this)) {
+        // ✅ Must run before heavy work
+        startAsForeground();
+
+        boolean canOverlay = Settings.canDrawOverlays(this);
+        Log.d(TAG, "canDrawOverlays=" + canOverlay);
+
+        if (!canOverlay) {
+            Log.d(TAG, "Overlay permission missing -> stopSelf()");
             stopSelf();
             return;
         }
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        // Inflate your bubble layout (layout_floating_bubble.xml)
-        bubbleView = LayoutInflater.from(this)
-                .inflate(R.layout.layout_floating_bubble, null);
-        ImageView ivBubble = bubbleView.findViewById(R.id.ivBubble);
+        bubbleView = new ImageView(this);
+        ((ImageView) bubbleView).setImageResource(R.mipmap.ic_launcher_round);
 
-        int size = dp(45);
-
-        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        int layoutType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
-        bubbleParams = new WindowManager.LayoutParams(
-                size,
-                size,
-                type,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-        );
-        bubbleParams.gravity = Gravity.TOP | Gravity.START;
-        bubbleParams.x = dp(16);
-        bubbleParams.y = dp(120);
-
-        windowManager.addView(bubbleView, bubbleParams);
-
-        ivBubble.setOnTouchListener(new View.OnTouchListener() {
-            private int initialX, initialY;
-            private float initialTouchX, initialTouchY;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchDownTime = System.currentTimeMillis();
-                        isDragging = false;
-
-                        initialX = bubbleParams.x;
-                        initialY = bubbleParams.y;
-                        initialTouchX = event.getRawX();
-                        initialTouchY = event.getRawY();
-
-                        showCloseTarget();
-                        return true;
-
-                    case MotionEvent.ACTION_MOVE:
-                        float dx = event.getRawX() - initialTouchX;
-                        float dy = event.getRawY() - initialTouchY;
-
-                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-                            isDragging = true;
-                        }
-
-                        bubbleParams.x = initialX + (int) dx;
-                        bubbleParams.y = initialY + (int) dy;
-
-                        if (windowManager != null && bubbleView != null) {
-                            windowManager.updateViewLayout(bubbleView, bubbleParams);
-                        }
-
-                        updateCloseTargetHighlight();
-                        return true;
-
-                    case MotionEvent.ACTION_UP:
-                        long clickDuration = System.currentTimeMillis() - touchDownTime;
-
-                        // ✅ IMPORTANT: check drop area BEFORE hiding the target
-                        boolean droppedInClose = isDroppedInCloseArea();
-
-                        hideCloseTarget();
-
-                        if (!isDragging && clickDuration < 200) {
-                            // Simple tap → open app + remove bubble
-                            playClickAnimation(ivBubble, () -> openMainApp());
-                        } else {
-                            if (droppedInClose) {
-                                // Dropped on trash → animate & destroy
-                                playDismissAnimation(ivBubble, () -> destroyBubble());
-                            } else {
-                                // Snap to nearest edge
-                                snapBubbleToEdge();
-                            }
-                        }
-                        return true;
-                }
-                return false;
-            }
-        });
-    }
-
-    // -------- open app & destroy bubble --------
-
-    private void openMainApp() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-
-        // remove bubble service after opening app
-        destroyBubble();
-    }
-
-    private void destroyBubble() {
-        stopSelf();   // onDestroy() will remove views
-    }
-
-    // -------- trash / close target --------
-
-    private void showCloseTarget() {
-        if (windowManager == null || closeTargetView != null) return;
-
-        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                : WindowManager.LayoutParams.TYPE_PHONE;
-
-        closeTargetView = LayoutInflater.from(this)
-                .inflate(R.layout.overlay_close_target, null);
-
-        int size = dp(72);
-        closeParams = new WindowManager.LayoutParams(
-                size,
-                size,
-                type,
+        params = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                layoutType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
         );
-        closeParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        closeParams.y = dp(24);
 
-        windowManager.addView(closeTargetView, closeParams);
-    }
+        params.gravity = Gravity.TOP | Gravity.START;
+        params.x = 0;
+        params.y = 200;
 
-    private void hideCloseTarget() {
-        if (windowManager != null && closeTargetView != null) {
-            windowManager.removeView(closeTargetView);
-            closeTargetView = null;
-            closeParams = null;
+        try {
+            Log.d(TAG, "Adding bubble view now...");
+            windowManager.addView(bubbleView, params);
+            Log.d(TAG, "Bubble view added OK");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to add bubble view: " + e.getMessage(), e);
+            stopSelf();
+            return;
         }
-    }
 
-    private boolean isDroppedInCloseArea() {
-        if (closeTargetView == null || bubbleView == null) return false;
+        bubbleView.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
 
-        int screenW = getResources().getDisplayMetrics().widthPixels;
-        int screenH = getResources().getDisplayMetrics().heightPixels;
+                case MotionEvent.ACTION_DOWN:
+                    isDragging = false;
+                    initialX = params.x;
+                    initialY = params.y;
+                    initialTouchX = event.getRawX();
+                    initialTouchY = event.getRawY();
+                    return true;
 
-        int bubbleW = bubbleView.getWidth() > 0 ? bubbleView.getWidth() : dp(45);
-        int bubbleH = bubbleView.getHeight() > 0 ? bubbleView.getHeight() : dp(45);
+                case MotionEvent.ACTION_MOVE:
+                    float dx = event.getRawX() - initialTouchX;
+                    float dy = event.getRawY() - initialTouchY;
 
-        int bubbleCenterX = bubbleParams.x + bubbleW / 2;
-        int bubbleCenterY = bubbleParams.y + bubbleH / 2;
+                    if (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX) {
+                        isDragging = true;
+                    }
 
-        int targetCenterX = screenW / 2;
-        int targetCenterY = screenH - dp(72); // approx centre of trash icon
+                    params.x = initialX + (int) dx;
+                    params.y = initialY + (int) dy;
 
-        int dx = bubbleCenterX - targetCenterX;
-        int dy = bubbleCenterY - targetCenterY;
+                    try {
+                        if (bubbleView.getParent() != null) {
+                            windowManager.updateViewLayout(bubbleView, params);
+                        }
+                    } catch (Exception ignored) {}
+                    return true;
 
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < dp(90);  // distance threshold
-    }
-
-    private void updateCloseTargetHighlight() {
-        if (closeTargetView == null) return;
-
-        if (isDroppedInCloseArea()) {
-            closeTargetView.animate().scaleX(1.1f).scaleY(1.1f).setDuration(80).start();
-        } else {
-            closeTargetView.animate().scaleX(1f).scaleY(1f).setDuration(80).start();
-        }
-    }
-
-    // -------- animations --------
-
-    private void snapBubbleToEdge() {
-        if (bubbleView == null || bubbleParams == null || windowManager == null) return;
-
-        int screenW = getResources().getDisplayMetrics().widthPixels;
-        int bubbleW = bubbleView.getWidth() > 0 ? bubbleView.getWidth() : dp(45);
-
-        int middle = screenW / 2;
-        int bubbleCenterX = bubbleParams.x + bubbleW / 2;
-
-        int targetX = (bubbleCenterX < middle) ? 0 : (screenW - bubbleW);
-
-        ValueAnimator animator = ValueAnimator.ofInt(bubbleParams.x, targetX);
-        animator.setDuration(200);
-        animator.addUpdateListener(animation -> {
-            bubbleParams.x = (int) animation.getAnimatedValue();
-            if (windowManager != null && bubbleView != null) {
-                windowManager.updateViewLayout(bubbleView, bubbleParams);
+                case MotionEvent.ACTION_UP:
+                    if (!isDragging) {
+                        Log.d(TAG, "Bubble tapped -> open MainActivity");
+                        Intent intent = new Intent(FloatingBubbleService.this, MainActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                    }
+                    return true;
             }
+            return false;
         });
-        animator.start();
     }
 
-    private void playClickAnimation(View v, Runnable endAction) {
-        v.animate()
-                .scaleX(0.9f)
-                .scaleY(0.9f)
-                .setDuration(80)
-                .withEndAction(() ->
-                        v.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
-                                .setDuration(80)
-                                .withEndAction(endAction)
-                                .start()
-                )
-                .start();
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "Service onStartCommand called");
+        return START_STICKY;
     }
 
-    private void playDismissAnimation(View v, Runnable endAction) {
-        v.animate()
-                .scaleX(0.1f)
-                .scaleY(0.1f)
-                .alpha(0f)
-                .setDuration(150)
-                .withEndAction(endAction)
-                .start();
-    }
+    private void startAsForeground() {
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-    // -------- lifecycle --------
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Chat Bubble",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Keeps the floating chat bubble running");
+            if (nm != null) nm.createNotificationChannel(channel);
+        }
+
+        Intent openIntent = new Intent(this, MainActivity.class);
+        openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        PendingIntent pi = PendingIntent.getActivity(
+                this, 0, openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("Chat bubble active")
+                .setContentText("Tap to return to chat")
+                .setContentIntent(pi)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build();
+
+        // ✅ IMPORTANT: provide the type on API 29+ (matches manifest dataSync)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(NOTIF_ID, notification);
+        }
+
+        Log.d(TAG, "Foreground notification started");
+    }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (bubbleView != null && windowManager != null) {
-            windowManager.removeView(bubbleView);
+        Log.d(TAG, "Service onDestroy called");
+
+        try {
+            if (bubbleView != null && bubbleView.getParent() != null && windowManager != null) {
+                windowManager.removeView(bubbleView);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error removing bubble: " + e.getMessage(), e);
         }
-        hideCloseTarget();
+
+        bubbleView = null;
+        windowManager = null;
     }
 
-    private int dp(int value) {
-        return (int) (value * getResources().getDisplayMetrics().density);
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }
